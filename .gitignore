@@ -1,5 +1,9 @@
 ﻿__pycache__/
 .ipynb_checkpoints/
 data/raw/*
+!data/raw/.gitkeep
 data/processed/*
+!data/processed/.gitkeep
+data/external/*
+!data/external/.gitkeep
 .env
