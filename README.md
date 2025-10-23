@@ -1,3 +1,9 @@
-# bitcoin-research-agent
-Research Bitcoin Everyday AI Agent
-你好，用Cursor写的智能体，2025年10月23日，我开始学习使用Cursor编程智能体
+﻿# Bitcoin Research Agent
+
+An AI-powered research agent for analyzing and reasoning about Bitcoin market dynamics.
+
+## Quick Start
+pip install -r requirements.txt
+python src/data_loader.py
+
+复制代码
