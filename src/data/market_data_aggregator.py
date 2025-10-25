@@ -7,6 +7,9 @@
 3. CoinGecko - 市场数据 + 币种信息
 4. Blockchain.com & Mempool.space - 链上数据
 5. Glassnode - 高级链上指标（可选）
+6. 宏观数据 - DXY, VIX, 黄金, S&P500 等
+7. 新闻数据 - CryptoPanic, NewsAPI, RSS Feeds
+8. 情感分析 - 新闻情感得分
 
 提供统一的接口和数据验证
 """
@@ -35,26 +38,45 @@ try:
 except ImportError:
     from data.onchain_collector import OnchainCollector
 
+try:
+    from macro_collector import MacroCollector
+except ImportError:
+    from data.macro_collector import MacroCollector
+
+try:
+    from news_collector import NewsCollector
+except ImportError:
+    from data.news_collector import NewsCollector
+
 
 class MarketDataAggregator:
     """市场数据聚合器"""
     
-    def __init__(self, glassnode_key: Optional[str] = None):
+    def __init__(self, 
+                 glassnode_key: Optional[str] = None,
+                 cryptopanic_key: Optional[str] = None,
+                 newsapi_key: Optional[str] = None):
         """
         初始化所有数据源
         
         Args:
             glassnode_key: Glassnode API Key (可选)
+            cryptopanic_key: CryptoPanic API Key (可选)
+            newsapi_key: NewsAPI Key (可选)
         """
         self.binance = BinanceCollector()
         self.coingecko = CoinGeckoCollector()
         self.onchain = OnchainCollector(glassnode_key=glassnode_key)
+        self.macro = MacroCollector()
+        self.news = NewsCollector(cryptopanic_key=cryptopanic_key, newsapi_key=newsapi_key)
         
     def get_comprehensive_data(self, 
                                days_back: int = 365,
                                include_funding: bool = True,
                                include_market_info: bool = True,
-                               include_onchain: bool = True) -> Dict[str, pd.DataFrame]:
+                               include_onchain: bool = True,
+                               include_macro: bool = True,
+                               include_news: bool = True) -> Dict[str, pd.DataFrame]:
         """
         获取综合市场数据
         
@@ -63,6 +85,8 @@ class MarketDataAggregator:
             include_funding: 是否包含资金费率
             include_market_info: 是否包含市场信息
             include_onchain: 是否包含链上数据
+            include_macro: 是否包含宏观数据
+            include_news: 是否包含新闻数据
         
         Returns:
             Dict with multiple DataFrames
@@ -159,6 +183,43 @@ class MarketDataAggregator:
                     print(f"   ✓ 交易所流动数据: {len(exchange_flows)} 条")
             else:
                 print(f"   ⚠️  Glassnode 数据跳过（需要 API Key）")
+            
+            print()
+        
+        # 5. 宏观数据
+        if include_macro:
+            print("5. 获取宏观数据...")
+            
+            start_date = (datetime.now() - timedelta(days=days_back)).strftime('%Y-%m-%d')
+            macro_indicators = ['dxy', 'vix', 'gold', 'sp500', 'treasury_10y']
+            
+            macro_data = self.macro.get_all_macro_indicators(
+                start_date=start_date,
+                indicators=macro_indicators
+            )
+            
+            for indicator, df in macro_data.items():
+                if not df.empty:
+                    result[f'macro_{indicator}'] = df
+                    print(f"   ✓ {indicator.upper()}: {len(df)} 条数据")
+            
+            print()
+        
+        # 6. 新闻数据
+        if include_news:
+            print("6. 获取新闻数据...")
+            
+            news_data = self.news.get_comprehensive_news(
+                days_back=min(days_back, 30),  # 新闻数据最多30天
+                include_cryptopanic=True,
+                include_newsapi=True,
+                include_rss=True
+            )
+            
+            for source, df in news_data.items():
+                if not df.empty:
+                    result[f'news_{source}'] = df
+                    print(f"   ✓ {source}: {len(df)} 条新闻")
             
             print()
         
