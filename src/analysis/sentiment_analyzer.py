@@ -1,408 +1,496 @@
 """
-新闻情感分析器
+Bitcoin Research Agent - 情绪与新闻影响分析
 
 功能：
-1. 文本情感分类（正面/中性/负面）
-2. 情感得分计算
-3. 关键词提取
-4. 批量情感分析
+1. 新闻情绪分析（NLP情感分析）
+2. Fear & Greed 指数计算
+3. 社交媒体情绪追踪
+4. 情绪与市场状态的关系分析
+5. 情绪指标时间序列生成
 
-方法：
-- 基于词典的情感分析（无需训练模型）
-- 加密货币特定关键词
-- 支持英文和简单中文
-
-依赖：pandas, numpy
-可选：textblob, vaderSentiment (pip install textblob vaderSentiment)
+作者：Bitcoin Research Agent Team
+日期：2025-10-25
 """
 
 import pandas as pd
 import numpy as np
-from typing import Dict, List, Optional, Tuple
-import re
+from typing import Dict, List, Tuple, Optional
+from datetime import datetime, timedelta
+import warnings
+warnings.filterwarnings('ignore')
 
 
 class SentimentAnalyzer:
-    """新闻情感分析器"""
+    """情绪与新闻影响分析器"""
     
-    # 加密货币特定的正面词汇
-    POSITIVE_KEYWORDS = {
-        'bullish', 'bull', 'rally', 'surge', 'soar', 'moon', 'pump',
-        'breakthrough', 'milestone', 'adoption', 'institutional',
-        'approve', 'approved', 'approval', 'launch', 'launched',
-        'partnership', 'collaborate', 'integration', 'upgrade',
-        'innovation', 'breakthrough', 'record', 'high', 'ath',
-        'positive', 'optimistic', 'confidence', 'strong', 'growth',
-        'gain', 'increase', 'rise', 'up', 'outperform', 'momentum'
-    }
-    
-    # 负面词汇
-    NEGATIVE_KEYWORDS = {
-        'bearish', 'bear', 'crash', 'plunge', 'dump', 'collapse',
-        'decline', 'fall', 'drop', 'correction', 'selloff', 'sell-off',
-        'ban', 'banned', 'restrict', 'regulation', 'crackdown',
-        'hack', 'hacked', 'exploit', 'scam', 'fraud', 'ponzi',
-        'bubble', 'overvalued', 'risk', 'concern', 'worry', 'fear',
-        'panic', 'crisis', 'problem', 'issue', 'lawsuit', 'sue',
-        'negative', 'pessimistic', 'weak', 'loss', 'lose', 'down'
-    }
-    
-    # 强调词（放大情感）
-    INTENSIFIERS = {
-        'very', 'extremely', 'highly', 'significantly', 'massively',
-        'huge', 'enormous', 'incredible', 'dramatic', 'major'
-    }
-    
-    # 否定词（反转情感）
-    NEGATIONS = {
-        'not', 'no', 'never', 'none', 'nobody', 'nothing', 
-        'neither', 'nowhere', 'isn\'t', 'aren\'t', 'wasn\'t',
-        'weren\'t', 'hasn\'t', 'haven\'t', 'hadn\'t', 'doesn\'t',
-        'don\'t', 'didn\'t', 'won\'t', 'wouldn\'t', 'can\'t', 'cannot'
-    }
-    
-    def __init__(self, use_vader: bool = True, use_textblob: bool = True):
+    def __init__(self, verbose: bool = True):
         """
-        初始化
+        初始化分析器
         
         Args:
-            use_vader: 使用 VADER 情感分析（需要安装）
-            use_textblob: 使用 TextBlob（需要安装）
+            verbose: 是否打印详细信息
         """
-        self.use_vader = use_vader
-        self.use_textblob = use_textblob
+        self.verbose = verbose
         
-        # 尝试加载 VADER
-        self.vader = None
-        if use_vader:
-            try:
-                from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-                self.vader = SentimentIntensityAnalyzer()
-                print("✓ VADER 情感分析器已加载")
-            except ImportError:
-                print("⚠️  VADER 未安装，使用基础情感分析")
-                print("   安装: pip install vaderSentiment")
+        # 情绪词典（简化版）
+        self.positive_words = {
+            'bullish', 'bull', 'rally', 'surge', 'pump', 'moon', 'gain', 'profit',
+            'breakout', 'breakthrough', 'strength', 'strong', 'buy', 'accumulate',
+            'optimistic', 'positive', 'growth', 'rise', 'soar', 'boom', 'up',
+            'green', 'rocket', 'explosive', 'golden', 'winner', 'win', 'success'
+        }
         
-        # 尝试加载 TextBlob
-        self.textblob = None
-        if use_textblob:
-            try:
-                from textblob import TextBlob
-                self.textblob = TextBlob
-                print("✓ TextBlob 已加载")
-            except ImportError:
-                print("⚠️  TextBlob 未安装，使用基础情感分析")
-                print("   安装: pip install textblob")
+        self.negative_words = {
+            'bearish', 'bear', 'crash', 'dump', 'plunge', 'fall', 'drop', 'loss',
+            'breakdown', 'weak', 'weakness', 'sell', 'panic', 'fear', 'fud',
+            'pessimistic', 'negative', 'decline', 'down', 'red', 'bloody',
+            'disaster', 'collapse', 'failure', 'lose', 'losing', 'worst'
+        }
+        
+        # Fear & Greed 组件权重
+        self.fg_weights = {
+            'volatility': 0.25,
+            'momentum': 0.25,
+            'volume': 0.15,
+            'social_media': 0.15,
+            'dominance': 0.10,
+            'trends': 0.10
+        }
     
-    def analyze_text(self, text: str) -> Dict:
+    def log(self, message: str):
+        """打印日志"""
+        if self.verbose:
+            print(f"[SentimentAnalyzer] {message}")
+    
+    # ==================== 简单情绪分析 ====================
+    
+    def simple_sentiment_score(self, text: str) -> float:
         """
-        分析单条文本情感
+        简单的情绪评分（基于词典）
         
         Args:
             text: 输入文本
         
         Returns:
-            Dict with sentiment analysis results
+            情绪分数 (-1到1之间)
         """
         if not text or not isinstance(text, str):
-            return {
-                'sentiment': 'neutral',
-                'score': 0.0,
-                'confidence': 0.0,
-                'method': 'none'
-            }
+            return 0.0
         
-        # 清理文本
-        text_clean = self._clean_text(text)
+        text_lower = text.lower()
+        words = text_lower.split()
+        
+        positive_count = sum(1 for word in words if word in self.positive_words)
+        negative_count = sum(1 for word in words if word in self.negative_words)
+        
+        total = positive_count + negative_count
+        if total == 0:
+            return 0.0
+        
+        # 归一化到 -1 到 1
+        score = (positive_count - negative_count) / total
+        return score
+    
+    # ==================== Fear & Greed 指数 ====================
+    
+    def calculate_fear_greed_index(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        计算 Fear & Greed 指数
+        
+        Args:
+            df: 输入DataFrame
+        
+        Returns:
+            添加了Fear & Greed指数的DataFrame
+        """
+        self.log("计算 Fear & Greed 指数...")
+        df = df.copy()
+        
+        # 1. 波动率组件 (Volatility)
+        vol_col = 'market_Volatility_30d' if 'market_Volatility_30d' in df.columns else 'RealizedVol_30d'
+        if vol_col in df.columns:
+            # 波动率越高，恐惧越大（0-100反转）
+            vol_normalized = 100 - self._normalize_to_100(df[vol_col])
+            df['FG_Volatility'] = vol_normalized
+        else:
+            df['FG_Volatility'] = 50  # 中性
+        
+        # 2. 动量组件 (Momentum/Market Strength)
+        return_col = 'market_Return' if 'market_Return' in df.columns else 'Return'
+        if return_col in df.columns:
+            # 使用多个时间窗口的收益率
+            momentum = df[return_col].rolling(window=30).mean()
+            df['FG_Momentum'] = self._normalize_to_100(momentum)
+        else:
+            df['FG_Momentum'] = 50
+        
+        # 3. 成交量组件 (Volume)
+        volume_col = 'market_Volume' if 'market_Volume' in df.columns else 'Volume'
+        if volume_col in df.columns:
+            # 成交量相对于平均值
+            volume_ma = df[volume_col].rolling(window=30).mean()
+            volume_ratio = df[volume_col] / volume_ma
+            df['FG_Volume'] = self._normalize_to_100(volume_ratio - 1)
+        else:
+            df['FG_Volume'] = 50
+        
+        # 4. 市场主导地位 (Market Dominance)
+        # 简化处理：使用RSI作为替代
+        rsi_col = 'market_RSI14' if 'market_RSI14' in df.columns else 'RSI14'
+        if rsi_col in df.columns:
+            df['FG_Dominance'] = df[rsi_col]
+        else:
+            df['FG_Dominance'] = 50
+        
+        # 5. 社交媒体 (Social Media) - 简化版
+        # 使用价格动量作为替代
+        if return_col in df.columns:
+            social_proxy = df[return_col].rolling(window=7).mean()
+            df['FG_Social'] = self._normalize_to_100(social_proxy)
+        else:
+            df['FG_Social'] = 50
+        
+        # 6. 趋势 (Trends) - Google Trends替代
+        # 使用成交量变化作为替代
+        volume_change_col = 'market_Volume_Change' if 'market_Volume_Change' in df.columns else 'Volume_Change'
+        if volume_change_col in df.columns:
+            df['FG_Trends'] = self._normalize_to_100(df[volume_change_col])
+        else:
+            df['FG_Trends'] = 50
+        
+        # 计算综合 Fear & Greed 指数
+        df['Fear_Greed_Index'] = (
+            df['FG_Volatility'] * self.fg_weights['volatility'] +
+            df['FG_Momentum'] * self.fg_weights['momentum'] +
+            df['FG_Volume'] * self.fg_weights['volume'] +
+            df['FG_Social'] * self.fg_weights['social_media'] +
+            df['FG_Dominance'] * self.fg_weights['dominance'] +
+            df['FG_Trends'] * self.fg_weights['trends']
+        )
+        
+        # 分类
+        df['FG_Category'] = pd.cut(
+            df['Fear_Greed_Index'],
+            bins=[0, 25, 45, 55, 75, 100],
+            labels=['Extreme Fear', 'Fear', 'Neutral', 'Greed', 'Extreme Greed']
+        )
+        
+        self.log(f"  Fear & Greed 指数计算完成")
+        
+        return df
+    
+    def _normalize_to_100(self, series: pd.Series) -> pd.Series:
+        """
+        归一化到0-100范围
+        
+        Args:
+            series: 输入序列
+        
+        Returns:
+            归一化后的序列
+        """
+        series_clean = series.replace([np.inf, -np.inf], np.nan).dropna()
+        
+        if len(series_clean) == 0:
+            return pd.Series(50, index=series.index)
+        
+        min_val = series_clean.quantile(0.01)  # 使用1%和99%分位数避免极端值
+        max_val = series_clean.quantile(0.99)
+        
+        if max_val == min_val:
+            return pd.Series(50, index=series.index)
+        
+        normalized = (series - min_val) / (max_val - min_val) * 100
+        normalized = normalized.clip(0, 100)
+        
+        return normalized
+    
+    # ==================== 情绪与市场状态关系 ====================
+    
+    def analyze_sentiment_by_regime(self, 
+                                    df: pd.DataFrame,
+                                    regime_col: str = 'market_regime') -> pd.DataFrame:
+        """
+        按市场状态分析情绪
+        
+        Args:
+            df: 输入DataFrame
+            regime_col: 市场状态列名
+        
+        Returns:
+            各状态的情绪统计DataFrame
+        """
+        if regime_col not in df.columns or 'Fear_Greed_Index' not in df.columns:
+            self.log("错误: 缺少必要列")
+            return pd.DataFrame()
+        
+        self.log("按市场状态分析情绪...")
+        
+        # 状态名称
+        regime_names = {
+            0: 'Consolidation',
+            1: 'Trending',
+            2: 'Panic',
+            3: 'Euphoria'
+        }
+        
+        stats = []
+        
+        for regime_id in sorted(df[regime_col].unique()):
+            regime_data = df[df[regime_col] == regime_id]
+            
+            stat = {
+                'regime': regime_names.get(regime_id, f'Regime_{regime_id}'),
+                'regime_id': regime_id,
+                'count': len(regime_data),
+                'avg_fg_index': regime_data['Fear_Greed_Index'].mean(),
+                'std_fg_index': regime_data['Fear_Greed_Index'].std(),
+                'min_fg_index': regime_data['Fear_Greed_Index'].min(),
+                'max_fg_index': regime_data['Fear_Greed_Index'].max(),
+            }
+            
+            # 分类分布
+            if 'FG_Category' in regime_data.columns:
+                category_counts = regime_data['FG_Category'].value_counts()
+                for category in ['Extreme Fear', 'Fear', 'Neutral', 'Greed', 'Extreme Greed']:
+                    stat[f'pct_{category.replace(" ", "_")}'] = \
+                        (category_counts.get(category, 0) / len(regime_data) * 100)
+            
+            stats.append(stat)
+        
+        stats_df = pd.DataFrame(stats)
+        
+        self.log(f"  分析了 {len(stats)} 个市场状态")
+        
+        return stats_df
+    
+    # ==================== 情绪与价格滞后关系 ====================
+    
+    def analyze_sentiment_price_lag(self,
+                                   df: pd.DataFrame,
+                                   max_lag: int = 7) -> pd.DataFrame:
+        """
+        分析情绪与价格的滞后关系
+        
+        Args:
+            df: 输入DataFrame
+            max_lag: 最大滞后天数
+        
+        Returns:
+            滞后相关性DataFrame
+        """
+        self.log(f"分析情绪与价格的滞后关系 (最大滞后={max_lag}天)...")
+        
+        if 'Fear_Greed_Index' not in df.columns:
+            self.log("错误: 缺少 Fear_Greed_Index 列")
+            return pd.DataFrame()
+        
+        return_col = 'market_Return' if 'market_Return' in df.columns else 'Return'
+        if return_col not in df.columns:
+            self.log("错误: 缺少收益率列")
+            return pd.DataFrame()
         
         results = []
         
-        # 1. 基于关键词的分析（始终运行）
-        keyword_result = self._keyword_sentiment(text_clean)
-        results.append(keyword_result)
+        for lag in range(0, max_lag + 1):
+            # 情绪领先价格lag天
+            if lag == 0:
+                corr = df['Fear_Greed_Index'].corr(df[return_col])
+            else:
+                corr = df['Fear_Greed_Index'].shift(lag).corr(df[return_col])
+            
+            results.append({
+                'lag_days': lag,
+                'correlation': corr,
+                'direction': 'Sentiment leads Price' if lag > 0 else 'Same day'
+            })
         
-        # 2. VADER 分析
-        if self.vader:
-            vader_result = self._vader_sentiment(text_clean)
-            results.append(vader_result)
+        lag_df = pd.DataFrame(results)
         
-        # 3. TextBlob 分析
-        if self.textblob:
-            textblob_result = self._textblob_sentiment(text_clean)
-            results.append(textblob_result)
+        # 找到最强相关性
+        max_corr_idx = lag_df['correlation'].abs().idxmax()
+        best_lag = lag_df.loc[max_corr_idx]
         
-        # 综合结果
-        final_result = self._ensemble_sentiment(results)
+        self.log(f"  最强相关性: Lag={best_lag['lag_days']}天, Corr={best_lag['correlation']:.4f}")
         
-        return final_result
+        return lag_df
     
-    def _clean_text(self, text: str) -> str:
-        """清理文本"""
-        # 转小写
-        text = text.lower()
-        # 移除 URL
-        text = re.sub(r'http\S+|www.\S+', '', text)
-        # 移除特殊字符（保留基本标点）
-        text = re.sub(r'[^\w\s\.\,\!\?]', ' ', text)
-        # 移除多余空格
-        text = ' '.join(text.split())
-        return text
+    # ==================== 情绪极值检测 ====================
     
-    def _keyword_sentiment(self, text: str) -> Dict:
-        """基于关键词的情感分析"""
-        words = set(text.split())
-        
-        # 计算正负词数量
-        positive_count = len(words & self.POSITIVE_KEYWORDS)
-        negative_count = len(words & self.NEGATIVE_KEYWORDS)
-        
-        # 检查否定词
-        has_negation = len(words & self.NEGATIONS) > 0
-        
-        # 检查强调词
-        has_intensifier = len(words & self.INTENSIFIERS) > 0
-        intensifier_factor = 1.5 if has_intensifier else 1.0
-        
-        # 计算得分
-        if has_negation:
-            # 否定词反转情感
-            score = (negative_count - positive_count) * intensifier_factor
-        else:
-            score = (positive_count - negative_count) * intensifier_factor
-        
-        # 归一化到 [-1, 1]
-        total_sentiment_words = positive_count + negative_count
-        if total_sentiment_words > 0:
-            score = score / max(total_sentiment_words, 5)  # 至少除以5避免过度
-            score = max(-1.0, min(1.0, score))
-        else:
-            score = 0.0
-        
-        # 确定情感
-        if score > 0.1:
-            sentiment = 'positive'
-        elif score < -0.1:
-            sentiment = 'negative'
-        else:
-            sentiment = 'neutral'
-        
-        confidence = abs(score) if total_sentiment_words > 0 else 0.0
-        
-        return {
-            'sentiment': sentiment,
-            'score': score,
-            'confidence': confidence,
-            'method': 'keyword'
-        }
-    
-    def _vader_sentiment(self, text: str) -> Dict:
-        """VADER 情感分析"""
-        scores = self.vader.polarity_scores(text)
-        compound = scores['compound']
-        
-        if compound >= 0.05:
-            sentiment = 'positive'
-        elif compound <= -0.05:
-            sentiment = 'negative'
-        else:
-            sentiment = 'neutral'
-        
-        return {
-            'sentiment': sentiment,
-            'score': compound,
-            'confidence': abs(compound),
-            'method': 'vader'
-        }
-    
-    def _textblob_sentiment(self, text: str) -> Dict:
-        """TextBlob 情感分析"""
-        blob = self.textblob(text)
-        polarity = blob.sentiment.polarity  # -1 to 1
-        
-        if polarity > 0.1:
-            sentiment = 'positive'
-        elif polarity < -0.1:
-            sentiment = 'negative'
-        else:
-            sentiment = 'neutral'
-        
-        return {
-            'sentiment': sentiment,
-            'score': polarity,
-            'confidence': abs(polarity),
-            'method': 'textblob'
-        }
-    
-    def _ensemble_sentiment(self, results: List[Dict]) -> Dict:
-        """综合多个情感分析结果"""
-        if not results:
-            return {
-                'sentiment': 'neutral',
-                'score': 0.0,
-                'confidence': 0.0,
-                'method': 'none'
-            }
-        
-        # 加权平均（VADER 和 TextBlob 权重更高）
-        weights = {
-            'keyword': 0.3,
-            'vader': 0.4,
-            'textblob': 0.3
-        }
-        
-        total_weight = sum(weights.get(r['method'], 0.3) for r in results)
-        weighted_score = sum(r['score'] * weights.get(r['method'], 0.3) for r in results) / total_weight
-        
-        # 投票决定情感
-        sentiment_votes = [r['sentiment'] for r in results]
-        sentiment = max(set(sentiment_votes), key=sentiment_votes.count)
-        
-        # 平均置信度
-        confidence = np.mean([r['confidence'] for r in results])
-        
-        methods = '+'.join([r['method'] for r in results])
-        
-        return {
-            'sentiment': sentiment,
-            'score': float(weighted_score),
-            'confidence': float(confidence),
-            'method': methods
-        }
-    
-    def analyze_dataframe(self, 
-                         df: pd.DataFrame,
-                         text_column: str = 'title',
-                         add_columns: bool = True) -> pd.DataFrame:
+    def detect_sentiment_extremes(self,
+                                  df: pd.DataFrame,
+                                  threshold: float = 2.0) -> pd.DataFrame:
         """
-        批量分析 DataFrame 中的文本
+        检测情绪极值
         
         Args:
-            df: 输入 DataFrame
-            text_column: 文本列名
-            add_columns: 是否添加情感分析列
+            df: 输入DataFrame
+            threshold: Z-score阈值
         
         Returns:
-            DataFrame with sentiment columns
+            添加了极值标记的DataFrame
         """
-        if df.empty or text_column not in df.columns:
-            print(f"✗ DataFrame 为空或缺少列: {text_column}")
+        self.log("检测情绪极值...")
+        df = df.copy()
+        
+        if 'Fear_Greed_Index' not in df.columns:
             return df
         
-        print(f"正在分析 {len(df)} 条文本...")
+        # 计算Z-score
+        fg_mean = df['Fear_Greed_Index'].mean()
+        fg_std = df['Fear_Greed_Index'].std()
+        df['FG_Zscore'] = (df['Fear_Greed_Index'] - fg_mean) / fg_std
         
-        # 批量分析
-        sentiments = []
-        for idx, text in enumerate(df[text_column]):
-            result = self.analyze_text(str(text))
-            sentiments.append(result)
-            
-            if (idx + 1) % 10 == 0:
-                print(f"  处理进度: {idx + 1}/{len(df)}")
+        # 标记极值
+        df['FG_Extreme'] = 'Normal'
+        df.loc[df['FG_Zscore'] < -threshold, 'FG_Extreme'] = 'Extreme Fear'
+        df.loc[df['FG_Zscore'] > threshold, 'FG_Extreme'] = 'Extreme Greed'
         
-        # 转换为 DataFrame
-        sentiment_df = pd.DataFrame(sentiments)
+        extreme_fear_count = (df['FG_Extreme'] == 'Extreme Fear').sum()
+        extreme_greed_count = (df['FG_Extreme'] == 'Extreme Greed').sum()
         
-        if add_columns:
-            # 添加到原 DataFrame
-            result_df = df.copy()
-            result_df['sentiment'] = sentiment_df['sentiment']
-            result_df['sentiment_score'] = sentiment_df['score']
-            result_df['sentiment_confidence'] = sentiment_df['confidence']
-            
-            print(f"✓ 情感分析完成")
-            return result_df
-        else:
-            return sentiment_df
+        self.log(f"  检测到极度恐慌: {extreme_fear_count} 天")
+        self.log(f"  检测到极度贪婪: {extreme_greed_count} 天")
+        
+        return df
     
-    def aggregate_sentiment(self, 
-                          df: pd.DataFrame,
-                          time_window: str = 'D') -> pd.DataFrame:
+    # ==================== 情绪变化率 ====================
+    
+    def calculate_sentiment_changes(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        聚合时间窗口内的情感
+        计算情绪变化率
         
         Args:
-            df: 包含情感分析的 DataFrame
-            time_window: 时间窗口 (D=天, W=周, M=月)
+            df: 输入DataFrame
         
         Returns:
-            Aggregated DataFrame
+            添加了情绪变化率的DataFrame
         """
-        if 'sentiment_score' not in df.columns:
-            print("✗ DataFrame 缺少 sentiment_score 列")
-            return pd.DataFrame()
+        self.log("计算情绪变化率...")
+        df = df.copy()
         
-        # 按时间窗口聚合
-        agg_df = df.resample(time_window).agg({
-            'sentiment_score': ['mean', 'std', 'count'],
-            'sentiment': lambda x: x.mode()[0] if len(x) > 0 else 'neutral'
-        })
+        if 'Fear_Greed_Index' not in df.columns:
+            return df
         
-        agg_df.columns = ['_'.join(col).strip() for col in agg_df.columns.values]
-        agg_df.columns = ['avg_sentiment', 'sentiment_volatility', 'news_count', 'dominant_sentiment']
+        # 1天变化
+        df['FG_Change_1d'] = df['Fear_Greed_Index'].diff()
         
-        return agg_df
+        # 7天变化
+        df['FG_Change_7d'] = df['Fear_Greed_Index'].diff(7)
+        
+        # 30天变化
+        df['FG_Change_30d'] = df['Fear_Greed_Index'].diff(30)
+        
+        # 变化率
+        df['FG_ChangeRate_1d'] = df['Fear_Greed_Index'].pct_change() * 100
+        
+        self.log("  情绪变化率计算完成")
+        
+        return df
+    
+    # ==================== 主流程 ====================
+    
+    def full_analysis(self, df: pd.DataFrame) -> Dict[str, pd.DataFrame]:
+        """
+        完整的情绪分析
+        
+        Args:
+            df: 输入DataFrame
+        
+        Returns:
+            分析结果字典
+        """
+        self.log("\n" + "=" * 70)
+        self.log("开始完整的情绪与新闻影响分析")
+        self.log("=" * 70 + "\n")
+        
+        results = {}
+        
+        # 1. 计算 Fear & Greed 指数
+        df = self.calculate_fear_greed_index(df)
+        
+        # 2. 检测极值
+        df = self.detect_sentiment_extremes(df)
+        
+        # 3. 计算变化率
+        df = self.calculate_sentiment_changes(df)
+        
+        # 4. 按市场状态分析
+        regime_stats = pd.DataFrame()
+        if 'market_regime' in df.columns:
+            regime_stats = self.analyze_sentiment_by_regime(df)
+        
+        # 5. 滞后关系分析
+        lag_analysis = self.analyze_sentiment_price_lag(df)
+        
+        # 保存结果
+        results['data'] = df
+        results['regime_analysis'] = regime_stats
+        results['lag_analysis'] = lag_analysis
+        
+        self.log("\n" + "=" * 70)
+        self.log("情绪与新闻影响分析完成")
+        self.log("=" * 70 + "\n")
+        
+        return results
 
 
 def main():
-    """测试情感分析器"""
-    import sys
-    import io
+    """测试情绪分析"""
+    print("\n" + "=" * 70)
+    print("  Bitcoin Research Agent - Sentiment Analysis Test")
+    print("=" * 70 + "\n")
     
-    # Windows UTF-8 输出
-    if sys.platform == 'win32':
-        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    # 加载数据
+    try:
+        df = pd.read_csv('data/processed/volatility_analysis.csv', index_col=0, parse_dates=True)
+        print(f"Loaded data: {len(df)} rows")
+    except FileNotFoundError:
+        print("Error: Please run volatility_analyzer.py first (WAL-15)")
+        return
     
-    print("=" * 60)
-    print("  情感分析器测试")
-    print("=" * 60)
-    print()
+    # 创建分析器
+    analyzer = SentimentAnalyzer(verbose=True)
     
-    analyzer = SentimentAnalyzer(use_vader=True, use_textblob=True)
+    # 完整分析
+    results = analyzer.full_analysis(df)
     
-    # 测试文本
-    test_texts = [
-        "Bitcoin surges to new all-time high as institutions show strong bullish sentiment",
-        "Cryptocurrency market crashes amid regulatory crackdown fears",
-        "Bitcoin price remains stable as traders await next move",
-        "Major partnership announced: Bitcoin adoption reaches new milestone",
-        "Experts warn of potential bubble in crypto markets",
-    ]
+    # 显示结果
+    print("\n" + "=" * 70)
+    print("Fear & Greed Index Summary:")
+    print("=" * 70)
+    fg_summary = results['data']['Fear_Greed_Index'].describe()
+    print(fg_summary)
     
-    print("【测试 1】单条文本分析\n")
+    print("\n" + "=" * 70)
+    print("Fear & Greed Category Distribution:")
+    print("=" * 70)
+    if 'FG_Category' in results['data'].columns:
+        category_dist = results['data']['FG_Category'].value_counts().sort_index()
+        for category, count in category_dist.items():
+            pct = count / len(results['data']) * 100
+            print(f"  {category}: {count} days ({pct:.1f}%)")
     
-    for text in test_texts:
-        result = analyzer.analyze_text(text)
-        print(f"文本: {text}")
-        print(f"情感: {result['sentiment']} (得分: {result['score']:.3f}, 置信度: {result['confidence']:.3f})")
-        print(f"方法: {result['method']}")
-        print()
+    if not results['regime_analysis'].empty:
+        print("\n" + "=" * 70)
+        print("Sentiment by Market Regime:")
+        print("=" * 70)
+        print(results['regime_analysis'][['regime', 'count', 'avg_fg_index']].to_string(index=False))
     
-    # 测试 DataFrame
-    print("\n【测试 2】批量分析\n")
+    print("\n" + "=" * 70)
+    print("Sentiment-Price Lag Analysis:")
+    print("=" * 70)
+    print(results['lag_analysis'].to_string(index=False))
     
-    df = pd.DataFrame({
-        'title': test_texts,
-        'published_at': pd.date_range(start='2025-10-20', periods=5, freq='D')
-    })
-    df.set_index('published_at', inplace=True)
+    # 保存结果
+    output_file = 'data/processed/sentiment_analysis.csv'
+    results['data'].to_csv(output_file)
+    print(f"\n[SUCCESS] Results saved to: {output_file}")
     
-    df_analyzed = analyzer.analyze_dataframe(df, text_column='title')
-    
-    print("\n分析结果:")
-    print(df_analyzed[['title', 'sentiment', 'sentiment_score']])
-    
-    # 测试聚合
-    print("\n【测试 3】情感聚合\n")
-    
-    agg_df = analyzer.aggregate_sentiment(df_analyzed, time_window='D')
-    print("\n每日情感聚合:")
-    print(agg_df)
-    
-    print("\n" + "=" * 60)
-    print("  测试完成！")
-    print("=" * 60)
+    print("\n" + "=" * 70)
+    print("Test completed successfully!")
+    print("=" * 70 + "\n")
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
-
