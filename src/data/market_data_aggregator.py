@@ -5,6 +5,8 @@
 1. yfinance - 历史数据
 2. Binance - 实时数据 + 资金费率
 3. CoinGecko - 市场数据 + 币种信息
+4. Blockchain.com & Mempool.space - 链上数据
+5. Glassnode - 高级链上指标（可选）
 
 提供统一的接口和数据验证
 """
@@ -28,19 +30,31 @@ try:
 except ImportError:
     from data.coingecko_collector import CoinGeckoCollector
 
+try:
+    from onchain_collector import OnchainCollector
+except ImportError:
+    from data.onchain_collector import OnchainCollector
+
 
 class MarketDataAggregator:
     """市场数据聚合器"""
     
-    def __init__(self):
-        """初始化所有数据源"""
+    def __init__(self, glassnode_key: Optional[str] = None):
+        """
+        初始化所有数据源
+        
+        Args:
+            glassnode_key: Glassnode API Key (可选)
+        """
         self.binance = BinanceCollector()
         self.coingecko = CoinGeckoCollector()
+        self.onchain = OnchainCollector(glassnode_key=glassnode_key)
         
     def get_comprehensive_data(self, 
                                days_back: int = 365,
                                include_funding: bool = True,
-                               include_market_info: bool = True) -> Dict[str, pd.DataFrame]:
+                               include_market_info: bool = True,
+                               include_onchain: bool = True) -> Dict[str, pd.DataFrame]:
         """
         获取综合市场数据
         
@@ -48,6 +62,7 @@ class MarketDataAggregator:
             days_back: 回溯天数
             include_funding: 是否包含资金费率
             include_market_info: 是否包含市场信息
+            include_onchain: 是否包含链上数据
         
         Returns:
             Dict with multiple DataFrames
@@ -106,6 +121,46 @@ class MarketDataAggregator:
                 result['coin_info'] = coin_info
                 print(f"   ✓ CoinGecko 币种信息获取成功")
         print()
+        
+        # 4. 链上数据
+        if include_onchain:
+            print("4. 从区块链获取链上数据...")
+            
+            # 区块链统计
+            blockchain_stats = self.onchain.get_blockchain_stats()
+            if blockchain_stats:
+                result['blockchain_stats'] = pd.DataFrame([blockchain_stats])
+                print(f"   ✓ 区块链统计数据获取成功")
+            
+            # 内存池信息
+            mempool_info = self.onchain.get_mempool_info()
+            if mempool_info:
+                result['mempool_info'] = pd.DataFrame([mempool_info])
+                print(f"   ✓ 内存池信息获取成功")
+            
+            # Glassnode 数据（如果有 API Key）
+            if self.onchain.glassnode_key:
+                # 活跃地址
+                active_addrs = self.onchain.get_active_addresses(days=min(days_back, 180))
+                if not active_addrs.empty:
+                    result['active_addresses'] = active_addrs
+                    print(f"   ✓ 活跃地址数据: {len(active_addrs)} 条")
+                
+                # UTXO 数量
+                utxo_count = self.onchain.get_utxo_count(days=min(days_back, 180))
+                if not utxo_count.empty:
+                    result['utxo_count'] = utxo_count
+                    print(f"   ✓ UTXO 数据: {len(utxo_count)} 条")
+                
+                # 交易所流动
+                exchange_flows = self.onchain.get_exchange_flows(flow_type='net', days=min(days_back, 180))
+                if not exchange_flows.empty:
+                    result['exchange_flows'] = exchange_flows
+                    print(f"   ✓ 交易所流动数据: {len(exchange_flows)} 条")
+            else:
+                print(f"   ⚠️  Glassnode 数据跳过（需要 API Key）")
+            
+            print()
         
         print("=" * 60)
         print(f"  数据收集完成！共 {len(result)} 个数据集")
