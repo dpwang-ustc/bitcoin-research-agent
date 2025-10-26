@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Bitcoin Research Agent - AI驱动的比特币市场研究系统">
+    <meta name="keywords" content="Bitcoin, AI, 市场分析, LangGraph, 比特币研究">
+    <title>Bitcoin Research Agent - AI驱动的比特币市场研究</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <i class="fas fa-bitcoin"></i>
+                <span>Bitcoin Research Agent</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#home" class="nav-link active">首页</a></li>
+                <li><a href="#features" class="nav-link">功能</a></li>
+                <li><a href="#demo" class="nav-link">Demo</a></li>
+                <li><a href="#docs" class="nav-link">文档</a></li>
+                <li><a href="#about" class="nav-link">关于</a></li>
+                <li><a href="https://github.com/dpwang-ustc/bitcoin-research-agent" class="nav-link" target="_blank">
+                    <i class="fab fa-github"></i> GitHub
+                </a></li>
+            </ul>
+            <div class="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-title">
+                    <span class="gradient-text">AI 驱动的</span><br>
+                    比特币市场研究系统
+                </h1>
+                <p class="hero-subtitle">
+                    利用 LangGraph 智能体框架，自动化分析比特币市场，生成专业的研究报告
+                </p>
+                <div class="hero-buttons">
+                    <a href="#demo" class="btn btn-primary">
+                        <i class="fas fa-play"></i> 在线 Demo
+                    </a>
+                    <a href="#docs" class="btn btn-secondary">
+                        <i class="fas fa-book"></i> 查看文档
+                    </a>
+                    <a href="https://github.com/dpwang-ustc/bitcoin-research-agent" class="btn btn-outline" target="_blank">
+                        <i class="fab fa-github"></i> GitHub
+                    </a>
+                </div>
+            </div>
+            <div class="hero-image">
+                <div class="hero-card">
+                    <div class="card-header">
+                        <i class="fas fa-chart-line"></i>
+                        <span>实时市场分析</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="stat">
+                            <div class="stat-value">$67,234</div>
+                            <div class="stat-label">BTC/USD</div>
+                            <div class="stat-change positive">+5.2%</div>
+                        </div>
+                        <div class="chart-mini">
+                            <canvas id="miniChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <h2 class="section-title">核心功能</h2>
+            <p class="section-subtitle">全方位的比特币市场研究工具</p>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h3>LangGraph 智能体</h3>
+                    <p>基于 LangGraph 的自驱动研究系统，自动化执行复杂的市场分析工作流</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> 智能任务路由</li>
+                        <li><i class="fas fa-check"></i> 多节点工作流</li>
+                        <li><i class="fas fa-check"></i> 状态管理</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <h3>市场状态识别</h3>
+                    <p>使用 K-Means 和 HMM 模型识别市场状态（震荡、趋势、恐慌、狂欢）</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> 4 种市场状态</li>
+                        <li><i class="fas fa-check"></i> 状态转换分析</li>
+                        <li><i class="fas fa-check"></i> 特征提取</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-wave-square"></i>
+                    </div>
+                    <h3>波动率分析</h3>
+                    <p>多种波动率指标和 GARCH 模型，精准预测市场波动</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> 实现/Parkinson/GK 波动率</li>
+                        <li><i class="fas fa-check"></i> GARCH(1,1) 预测</li>
+                        <li><i class="fas fa-check"></i> 流动性分析</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-smile"></i>
+                    </div>
+                    <h3>情绪分析</h3>
+                    <p>多维度的恐惧与贪婪指数，洞察市场情绪</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> 6 个情绪组件</li>
+                        <li><i class="fas fa-check"></i> 极端情绪检测</li>
+                        <li><i class="fas fa-check"></i> 滞后相关性</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-water"></i>
+                    </div>
+                    <h3>资金流向追踪</h3>
+                    <p>主力资金和鲸鱼活动监控，识别市场主力行为</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> 资金流指标</li>
+                        <li><i class="fas fa-check"></i> 鲸鱼活动识别</li>
+                        <li><i class="fas fa-check"></i> 行为分类</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h3>自动化调度</h3>
+                    <p>定时任务系统，自动生成每日/每周市场报告</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> 每日分析</li>
+                        <li><i class="fas fa-check"></i> 每周报告</li>
+                        <li><i class="fas fa-check"></i> 多种部署方式</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-code-branch"></i>
+                    </div>
+                    <h3>版本管理</h3>
+                    <p>完整的输出版本控制，确保结果可追溯和可重现</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> 版本追踪</li>
+                        <li><i class="fas fa-check"></i> 哈希验证</li>
+                        <li><i class="fas fa-check"></i> 历史对比</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <h3>自动报告生成</h3>
+                    <p>AI 增强的周报生成，专业的市场分析和展望</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> AI 摘要</li>
+                        <li><i class="fas fa-check"></i> 智能评分</li>
+                        <li><i class="fas fa-check"></i> Markdown 输出</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats-section">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number">15</div>
+                    <div class="stat-label">已完成任务</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">79%</div>
+                    <div class="stat-label">项目完成度</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">15,000+</div>
+                    <div class="stat-label">代码行数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">8</div>
+                    <div class="stat-label">核心模块</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Demo Section -->
+    <section id="demo" class="demo-section">
+        <div class="container">
+            <h2 class="section-title">在线 Demo</h2>
+            <p class="section-subtitle">体验完整的分析功能</p>
+            
+            <div class="demo-container">
+                <div class="demo-tabs">
+                    <button class="tab-btn active" data-tab="dashboard">
+                        <i class="fas fa-chart-line"></i> Dashboard
+                    </button>
+                    <button class="tab-btn" data-tab="reports">
+                        <i class="fas fa-file-alt"></i> 报告示例
+                    </button>
+                    <button class="tab-btn" data-tab="api">
+                        <i class="fas fa-code"></i> API 示例
+                    </button>
+                </div>
+
+                <div class="tab-content active" id="dashboard">
+                    <div class="demo-embed">
+                        <p class="demo-info">
+                            <i class="fas fa-info-circle"></i>
+                            Dashboard 正在运行中，请访问: 
+                            <a href="http://localhost:8501" target="_blank">http://localhost:8501</a>
+                        </p>
+                        <div class="demo-screenshot">
+                            <img src="images/dashboard-preview.png" alt="Dashboard Preview" id="dashboardImg">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="reports">
+                    <div class="reports-grid">
+                        <div class="report-card">
+                            <div class="report-icon">
+                                <i class="fas fa-calendar-day"></i>
+                            </div>
+                            <h3>每日分析报告</h3>
+                            <p>自动生成的每日市场分析，包含价格走势、技术指标和情绪分析</p>
+                            <a href="reports/daily_report_latest.md" class="report-link">查看示例 <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                        <div class="report-card">
+                            <div class="report-icon">
+                                <i class="fas fa-calendar-week"></i>
+                            </div>
+                            <h3>每周深度报告</h3>
+                            <p>每周生成的深度市场报告，包含回顾、分析和展望</p>
+                            <a href="reports/weekly_report_latest.md" class="report-link">查看示例 <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="api">
+                    <div class="code-example">
+                        <div class="code-header">
+                            <span>Python API 使用示例</span>
+                            <button class="copy-btn" onclick="copyCode()">
+                                <i class="fas fa-copy"></i> 复制
+                            </button>
+                        </div>
+                        <pre><code class="language-python">from src.agent import BitcoinResearchAgent
+
+# 创建 Agent
+agent = BitcoinResearchAgent(
+    llm_provider="openai",
+    llm_model="gpt-4o-mini"
+)
+
+# 运行分析
+result = agent.run("生成本周比特币市场完整分析报告")
+
+# 获取报告
+print(result['report'])
+
+# 查看执行步骤
+for msg in result['messages']:
+    print(msg.content)</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Documentation Section -->
+    <section id="docs" class="docs-section">
+        <div class="container">
+            <h2 class="section-title">文档</h2>
+            <p class="section-subtitle">详细的使用指南和 API 文档</p>
+            
+            <div class="docs-grid">
+                <a href="docs/LANGGRAPH_AGENT_GUIDE.md" class="doc-card">
+                    <div class="doc-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h3>LangGraph Agent 指南</h3>
+                    <p>如何使用 LangGraph 智能体框架</p>
+                </a>
+
+                <a href="docs/SCHEDULER_DEPLOYMENT_GUIDE.md" class="doc-card">
+                    <div class="doc-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h3>定时任务部署指南</h3>
+                    <p>5 种部署方式的详细说明</p>
+                </a>
+
+                <a href="docs/VERSION_MANAGEMENT_GUIDE.md" class="doc-card">
+                    <div class="doc-icon">
+                        <i class="fas fa-code-branch"></i>
+                    </div>
+                    <h3>版本管理指南</h3>
+                    <p>版本控制和可重现性</p>
+                </a>
+
+                <a href="docs/AI_AGENT_GUIDE.md" class="doc-card">
+                    <div class="doc-icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h3>AI Agent 配置指南</h3>
+                    <p>多 LLM 提供商配置</p>
+                </a>
+
+                <a href="docs/FEATURE_ENGINEERING_GUIDE.md" class="doc-card">
+                    <div class="doc-icon">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <h3>特征工程指南</h3>
+                    <p>数据处理和特征提取</p>
+                </a>
+
+                <a href="README.md" class="doc-card">
+                    <div class="doc-icon">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <h3>项目 README</h3>
+                    <p>快速开始和项目概览</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about-section">
+        <div class="container">
+            <div class="about-content">
+                <div class="about-text">
+                    <h2 class="section-title">关于项目</h2>
+                    <p>Bitcoin Research Agent 是一个 AI 驱动的比特币市场研究系统，旨在自动化市场分析、报告生成和研究工作流。</p>
+                    
+                    <h3>技术栈</h3>
+                    <div class="tech-stack">
+                        <span class="tech-tag"><i class="fab fa-python"></i> Python</span>
+                        <span class="tech-tag"><i class="fas fa-brain"></i> LangGraph</span>
+                        <span class="tech-tag"><i class="fas fa-chart-line"></i> Pandas</span>
+                        <span class="tech-tag"><i class="fas fa-robot"></i> OpenAI</span>
+                        <span class="tech-tag"><i class="fas fa-chart-bar"></i> Scikit-learn</span>
+                        <span class="tech-tag"><i class="fas fa-desktop"></i> Streamlit</span>
+                    </div>
+
+                    <h3>项目进度</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 79%">79%</div>
+                    </div>
+                    <p class="progress-text">15/19 核心任务已完成</p>
+
+                    <div class="about-links">
+                        <a href="https://github.com/dpwang-ustc/bitcoin-research-agent" class="btn btn-primary" target="_blank">
+                            <i class="fab fa-github"></i> GitHub 仓库
+                        </a>
+                        <a href="https://linear.app/walk-and-book/project/bitcoin-research-agent-4d68b31d-eef2" class="btn btn-secondary" target="_blank">
+                            <i class="fas fa-tasks"></i> Linear 项目
+                        </a>
+                    </div>
+                </div>
+
+                <div class="about-stats">
+                    <div class="milestone-card">
+                        <h3>项目里程碑</h3>
+                        <ul class="milestone-list">
+                            <li>
+                                <i class="fas fa-check-circle"></i>
+                                <div>
+                                    <strong>数据收集</strong>
+                                    <span>市场、链上、宏观数据</span>
+                                </div>
+                            </li>
+                            <li>
+                                <i class="fas fa-check-circle"></i>
+                                <div>
+                                    <strong>特征工程</strong>
+                                    <span>30+ 技术指标</span>
+                                </div>
+                            </li>
+                            <li>
+                                <i class="fas fa-check-circle"></i>
+                                <div>
+                                    <strong>市场分析</strong>
+                                    <span>状态识别、波动率、情绪</span>
+                                </div>
+                            </li>
+                            <li>
+                                <i class="fas fa-check-circle"></i>
+                                <div>
+                                    <strong>AI 智能体</strong>
+                                    <span>LangGraph 自动化</span>
+                                </div>
+                            </li>
+                            <li>
+                                <i class="fas fa-check-circle"></i>
+                                <div>
+                                    <strong>可视化</strong>
+                                    <span>Dashboard + 报告</span>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-col">
+                    <h3><i class="fas fa-bitcoin"></i> Bitcoin Research Agent</h3>
+                    <p>AI 驱动的比特币市场研究系统</p>
+                    <div class="social-links">
+                        <a href="https://github.com/dpwang-ustc/bitcoin-research-agent" target="_blank">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="https://linear.app/walk-and-book" target="_blank">
+                            <i class="fas fa-tasks"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="footer-col">
+                    <h4>快速链接</h4>
+                    <ul>
+                        <li><a href="#features">功能</a></li>
+                        <li><a href="#demo">Demo</a></li>
+                        <li><a href="#docs">文档</a></li>
+                        <li><a href="#about">关于</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-col">
+                    <h4>文档</h4>
+                    <ul>
+                        <li><a href="docs/LANGGRAPH_AGENT_GUIDE.md">Agent 指南</a></li>
+                        <li><a href="docs/SCHEDULER_DEPLOYMENT_GUIDE.md">部署指南</a></li>
+                        <li><a href="docs/VERSION_MANAGEMENT_GUIDE.md">版本管理</a></li>
+                        <li><a href="README.md">README</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-col">
+                    <h4>联系</h4>
+                    <ul>
+                        <li><i class="fas fa-envelope"></i> dpwang@ustc.edu</li>
+                        <li><i class="fab fa-github"></i> dpwang-ustc</li>
+                        <li><i class="fas fa-globe"></i> v1.0.0</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2025 Bitcoin Research Agent. All rights reserved.</p>
+                <p>Built with <i class="fas fa-heart"></i> using Python, LangGraph, and Streamlit</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
+
