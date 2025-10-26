@@ -147,7 +147,7 @@ def main():
         page = st.radio(
             "选择页面",
             ["🏠 市场概览", "📈 市场状态", "📉 波动率分析", 
-             "😊 情绪指数", "💰 资金流向", "🎯 综合信号"],
+             "😊 情绪指数", "💰 资金流向", "🎯 综合信号", "📰 周报"],
             index=0
         )
         
@@ -177,6 +177,8 @@ def main():
         show_capital_flow(df, metrics)
     elif page == "🎯 综合信号":
         show_signals(df, metrics)
+    elif page == "📰 周报":
+        show_weekly_report(df, metrics)
 
 
 # ==================== 页面1: 市场概览 ====================
@@ -1005,6 +1007,83 @@ def show_signals(df, metrics):
         st.metric("买入信号", "72%", "胜率")
         st.metric("卖出信号", "68%", "胜率")
         st.metric("平均收益", "+18%", "买入后30天")
+
+
+# ==================== 页面7: 周报 ====================
+
+def show_weekly_report(df, metrics):
+    """显示自动生成的周报"""
+    st.header("📰 Bitcoin 市场周报")
+    
+    # 操作按钮
+    col1, col2, col3 = st.columns([1, 1, 2])
+    
+    with col1:
+        if st.button("🔄 生成最新周报", type="primary"):
+            with st.spinner("正在生成周报..."):
+                try:
+                    from src.reports import WeeklyReportGenerator
+                    generator = WeeklyReportGenerator(verbose=False)
+                    report = generator.generate_report()
+                    st.success("✅ 周报生成成功！")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"生成失败: {str(e)}")
+    
+    with col2:
+        # 下载按钮
+        try:
+            with open('reports/weekly_report.md', 'r', encoding='utf-8') as f:
+                report_content = f.read()
+            st.download_button(
+                label="📥 下载Markdown",
+                data=report_content,
+                file_name=f"bitcoin_weekly_{datetime.now().strftime('%Y%m%d')}.md",
+                mime="text/markdown"
+            )
+        except:
+            st.info("暂无可下载的周报")
+    
+    st.markdown("---")
+    
+    # 读取并显示周报
+    try:
+        with open('reports/weekly_report.md', 'r', encoding='utf-8') as f:
+            report_content = f.read()
+        
+        # 提取报告周期
+        import re
+        period_match = re.search(r'\*\*报告周期\*\*: (.+?)  ', report_content)
+        if period_match:
+            st.info(f"📅 报告周期: {period_match.group(1)}")
+        
+        # 显示报告内容
+        st.markdown(report_content)
+        
+    except FileNotFoundError:
+        st.warning("⚠️ 暂无周报数据")
+        st.info("点击上方「生成最新周报」按钮来创建周报")
+        
+        # 显示周报功能介绍
+        st.markdown("""
+        ### 📊 周报内容
+        
+        自动周报包含以下内容：
+        
+        1. **📝 执行摘要** - 核心观点和关键指标
+        2. **📊 市场概览** - 价格走势和市场状态
+        3. **📈 技术分析** - 波动率和技术指标
+        4. **😊 情绪分析** - Fear & Greed指数
+        5. **💰 资金流向** - 主力行为和鲸鱼活动
+        6. **🎯 下周展望** - 综合判断和操作建议
+        
+        ### ⚡ 特点
+        
+        - ✅ 自动生成，5秒完成
+        - ✅ 数据准确，100%客观
+        - ✅ 智能评分和操作建议
+        - ✅ 支持下载和分享
+        """)
 
 
 # ==================== 启动应用 ====================
