@@ -25,3 +25,6 @@ seaborn
 # Web Dashboard
 streamlit>=1.28.0
 plotly>=5.17.0
+
+# 定时任务调度（WAL-23）
+schedule>=1.2.0

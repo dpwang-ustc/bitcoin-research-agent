@@ -1,0 +1,50 @@
+# Bitcoin Research Agent - 定时任务配置
+
+# AI Agent 配置
+agent:
+  enabled: true
+  llm_provider: "openai"  # openai / anthropic
+  llm_model: "gpt-4o-mini"  # gpt-4o-mini / gpt-4o / claude-3-5-sonnet-20241022
+  api_key: null  # 留空则从环境变量读取 OPENAI_API_KEY 或 ANTHROPIC_API_KEY
+
+# 任务配置
+tasks:
+  # 每日市场分析
+  daily_analysis:
+    enabled: true
+    time: "09:00"  # 24小时制
+    description: "每日市场分析报告"
+  
+  # 每周市场报告
+  weekly_report:
+    enabled: true
+    day: "monday"  # monday / tuesday / wednesday / thursday / friday / saturday / sunday
+    time: "08:00"
+    description: "每周深度市场报告"
+  
+  # 数据备份
+  data_backup:
+    enabled: false  # 默认关闭
+    time: "23:00"
+    description: "每日数据备份"
+
+# 通知配置
+notifications:
+  on_success: false  # 任务成功时是否通知
+  on_error: true     # 任务失败时是否通知
+  methods:
+    - log    # 日志文件
+    - file   # 通知文件 (notifications_YYYYMMDD.json)
+    # 可扩展: email, slack, discord, webhook
+
+# 输出配置
+output:
+  report_dir: "reports"  # 报告输出目录
+  data_dir: "data/processed"  # 数据目录
+
+# 日志配置
+logging:
+  dir: "logs"  # 日志目录
+  level: "INFO"  # DEBUG / INFO / WARNING / ERROR
+  retention_days: 30  # 日志保留天数
+
