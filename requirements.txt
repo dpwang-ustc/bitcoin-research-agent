@@ -5,3 +5,17 @@ scikit-learn
 yfinance
 requests
 pyyaml
+
+# AI Agent 依赖（WAL-20）
+openai>=1.0.0
+anthropic>=0.18.0
+
+# 数据分析和建模
+hmmlearn
+arch
+scipy
+seaborn
+
+# Web Dashboard
+streamlit>=1.28.0
+plotly>=5.17.0

@@ -1,12 +1,13 @@
 """
-Bitcoin Research Agent - 自动周报生成器
+Bitcoin Research Agent - 自动周报生成器（AI增强版）
 
 功能：
 1. 数据聚合 - 从各模块获取数据
 2. 周度统计 - 计算本周vs上周变化
-3. 报告生成 - 生成结构化Markdown周报
-4. 图表嵌入 - 生成并嵌入可视化
-5. 多格式导出 - Markdown/HTML
+3. AI洞察 - 使用 LLM 生成智能分析
+4. 报告生成 - 生成结构化Markdown周报
+5. 图表嵌入 - 生成并嵌入可视化
+6. 多格式导出 - Markdown/HTML
 
 作者：Bitcoin Research Agent Team
 日期：2025-10-26
@@ -25,25 +26,59 @@ warnings.filterwarnings('ignore')
 plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'Arial Unicode MS']
 plt.rcParams['axes.unicode_minus'] = False
 
+# 导入 AI Agent
+try:
+    from src.model.agent_reasoner import MarketInsightAgent
+    AI_AGENT_AVAILABLE = True
+except ImportError:
+    AI_AGENT_AVAILABLE = False
+    print("Warning: AI Agent not available. Falling back to rule-based generation.")
+
 
 class WeeklyReportGenerator:
-    """自动周报生成器"""
+    """自动周报生成器（AI增强版）"""
     
-    def __init__(self, data_path: str = 'data/processed/capital_flow_analysis.csv', 
+    def __init__(self, 
+                 data_path: str = 'data/processed/capital_flow_analysis.csv',
+                 use_ai: bool = True,
+                 ai_provider: str = "openai",
+                 ai_model: Optional[str] = None,
+                 api_key: Optional[str] = None,
                  verbose: bool = True):
         """
         初始化周报生成器
         
         Args:
             data_path: 数据文件路径
+            use_ai: 是否使用 AI 生成洞察
+            ai_provider: AI 提供商（openai/anthropic/ollama）
+            ai_model: AI 模型名称
+            api_key: API 密钥
             verbose: 是否打印详细信息
         """
         self.data_path = data_path
+        self.use_ai = use_ai and AI_AGENT_AVAILABLE
         self.verbose = verbose
         self.df = None
         self.week_data = None
         self.prev_week_data = None
         self.stats = {}
+        
+        # 初始化 AI Agent
+        self.ai_agent = None
+        if self.use_ai:
+            try:
+                self.ai_agent = MarketInsightAgent(
+                    provider=ai_provider,
+                    model=ai_model,
+                    api_key=api_key,
+                    verbose=False  # Agent 不需要太多日志
+                )
+                self.log("✅ AI Agent initialized")
+            except Exception as e:
+                self.log(f"⚠️  AI Agent initialization failed: {e}")
+                self.log("⚠️  Falling back to rule-based generation")
+                self.use_ai = False
         
     def log(self, message: str):
         """打印日志"""
@@ -301,12 +336,13 @@ class WeeklyReportGenerator:
 ---"""
     
     def _generate_summary(self) -> str:
-        """生成执行摘要"""
+        """生成执行摘要（AI增强）"""
         price = self.stats['price']
         regime = self.stats.get('regime', {})
         sentiment = self.stats.get('sentiment', {})
         
-        return f"""## 📝 执行摘要
+        # 数据部分（始终显示）
+        data_section = f"""## 📝 执行摘要
 
 **本周核心观点**:
 
@@ -315,11 +351,30 @@ class WeeklyReportGenerator:
 - 😊 **市场情绪**: {sentiment.get('current_category', 'N/A')} ({sentiment.get('current', 0):.0f})
 - 🎯 **主力行为**: {self.stats.get('capital', {}).get('main_behavior', 'N/A')}
 
-本周市场{'上涨' if price['week_return'] > 0 else '下跌'}**{abs(price['week_return']):.2f}%**，
+"""
+        
+        # AI 洞察部分
+        if self.use_ai and self.ai_agent:
+            try:
+                ai_summary = self.ai_agent.generate_executive_summary(self.stats)
+                data_section += f"**AI 洞察**:\n\n{ai_summary}\n\n---"
+            except Exception as e:
+                self.log(f"⚠️  AI summary generation failed: {e}")
+                # 回退到规则生成
+                data_section += f"""本周市场{'上涨' if price['week_return'] > 0 else '下跌'}**{abs(price['week_return']):.2f}%**，
 处于**{regime.get('current_regime', 'N/A')}**状态，
 市场情绪为**{sentiment.get('current_category', 'N/A')}**。
 
 ---"""
+        else:
+            # 规则生成（原有逻辑）
+            data_section += f"""本周市场{'上涨' if price['week_return'] > 0 else '下跌'}**{abs(price['week_return']):.2f}%**，
+处于**{regime.get('current_regime', 'N/A')}**状态，
+市场情绪为**{sentiment.get('current_category', 'N/A')}**。
+
+---"""
+        
+        return data_section
     
     def _generate_market_overview(self) -> str:
         """生成市场概览"""
@@ -488,12 +543,50 @@ class WeeklyReportGenerator:
         return content
     
     def _generate_outlook(self) -> str:
-        """生成下周展望"""
+        """生成下周展望（AI增强）"""
         price = self.stats['price']
         regime = self.stats.get('regime', {})
         sentiment = self.stats.get('sentiment', {})
         capital = self.stats.get('capital', {})
         
+        # AI 生成展望
+        if self.use_ai and self.ai_agent:
+            try:
+                ai_outlook = self.ai_agent.generate_outlook(self.stats)
+                
+                content = f"""## 🎯 下周展望
+
+### AI 分析与建议
+
+{ai_outlook}
+
+### 关键观察点
+
+1. **价格支撑/阻力位**: 
+   - 支撑: ${price['week_low'] * 0.98:,.0f}
+   - 阻力: ${price['week_high'] * 1.02:,.0f}
+
+2. **市场状态**: 关注是否延续{regime.get('current_regime', 'N/A')}状态
+
+3. **情绪指标**: 关注F&G指数是否突破{sentiment.get('current', 50):.0f}±10
+
+4. **资金流向**: 关注鲸鱼活动和主力行为变化
+
+### 风险提示
+
+- ⚠️ 市场有风险，投资需谨慎
+- ⚠️ 本报告仅供参考，不构成投资建议
+- ⚠️ 请根据自身风险承受能力决策
+
+---"""
+                
+                return content
+                
+            except Exception as e:
+                self.log(f"⚠️  AI outlook generation failed: {e}")
+                # 回退到规则生成
+        
+        # 规则生成（原有逻辑）
         # 综合评分
         score = 0
         
