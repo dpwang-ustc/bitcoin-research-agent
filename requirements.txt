@@ -10,6 +10,12 @@ pyyaml
 openai>=1.0.0
 anthropic>=0.18.0
 
+# LangGraph Agent 框架（WAL-22）
+langgraph>=0.2.0
+langchain>=0.1.0
+langchain-openai>=0.0.5
+langchain-anthropic>=0.1.0
+
 # 数据分析和建模
 hmmlearn
 arch
